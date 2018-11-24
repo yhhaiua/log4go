@@ -5,6 +5,7 @@ package log4go
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -50,6 +51,42 @@ func (w *FileLogWriter) Close() {
 	w.file.Sync()
 }
 
+
+func pathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
+}
+func createFileLog(fname string)  {
+	var end, endL, endR int
+	endL = strings.LastIndex(fname, "/")
+	endR = strings.LastIndex(fname, "\\")
+	if endL > endR {
+		end = endL
+	} else {
+		end = endR
+	}
+	if end != -1 {
+		folder := fname[0:end]
+		res, err := pathExists(folder)
+		if err != nil {
+			fmt.Println("err:", err)
+		}
+		if !res {
+			err := os.MkdirAll(folder, os.ModePerm)
+			if err != nil {
+				fmt.Println("err:", err)
+			} else {
+				fmt.Println("create directory success!")
+			}
+		}
+	}
+}
 // NewFileLogWriter creates a new LogWriter which writes to the given file and
 // has rotation enabled if rotate is true.
 //
@@ -60,12 +97,15 @@ func (w *FileLogWriter) Close() {
 // The standard log-line format is:
 //   [%D %T] [%L] (%S) %M
 func NewFileLogWriter(fname string, rotate bool) *FileLogWriter {
+
+	createFileLog(fname)
+
 	w := &FileLogWriter{
 		rec:       make(chan *LogRecord, LogBufferLength),
 		rot:       make(chan bool),
 		filename:  fname,
 		format:    "[%D %T] [%L] (%S) %M",
-		rotate:    rotate,
+		rotate:    false,
 		maxbackup: 999,
 	}
 
@@ -74,6 +114,7 @@ func NewFileLogWriter(fname string, rotate bool) *FileLogWriter {
 		fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.filename, err)
 		return nil
 	}
+	w.SetRotate(rotate)
 
 	go func() {
 		defer func() {

@@ -8,6 +8,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -54,18 +55,19 @@ func FormatLogRecord(format string, rec *LogRecord) string {
 	}
 
 	out := bytes.NewBuffer(make([]byte, 0, 64))
-	secs := rec.Created.UnixNano() / 1e9
+	secs := rec.Created.UnixNano() /  int64(time.Millisecond)
 
 	cache := getFormatCache()
 	if cache.LastUpdateSeconds != secs {
 		month, day, year := rec.Created.Month(), rec.Created.Day(), rec.Created.Year()
 		hour, minute, second := rec.Created.Hour(), rec.Created.Minute(), rec.Created.Second()
 		zone, _ := rec.Created.Zone()
+		millisecond := rec.Created.Nanosecond() / int(time.Millisecond)
 		updated := &formatCacheType{
 			LastUpdateSeconds: secs,
 			shortTime:         fmt.Sprintf("%02d:%02d", hour, minute),
 			shortDate:         fmt.Sprintf("%02d/%02d/%02d", day, month, year%100),
-			longTime:          fmt.Sprintf("%02d:%02d:%02d %s", hour, minute, second, zone),
+			longTime:          fmt.Sprintf("%02d:%02d:%02d.%03d %s", hour, minute, second,millisecond, zone),
 			longDate:          fmt.Sprintf("%04d/%02d/%02d", year, month, day),
 		}
 		cache = updated

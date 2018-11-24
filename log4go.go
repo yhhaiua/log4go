@@ -179,6 +179,24 @@ func (log Logger) AddFilter(name string, lvl Level, writer LogWriter) Logger {
 	return log
 }
 
+func (log Logger) sourceInfo() string{
+
+	pc, file, lineno, ok := runtime.Caller(3)
+	src := ""
+	if ok {
+		slash := strings.LastIndex(file, "/")
+		if slash >= 0 {
+			file = file[slash+1:]
+		}
+		sname := runtime.FuncForPC(pc).Name()
+		slashname := strings.LastIndex(sname, ".")
+		if slashname >= 0 {
+			sname = sname[slashname+1:]
+		}
+		src = fmt.Sprintf("%s(%s):%d", file,sname, lineno)
+	}
+	return src
+}
 /******* Logging *******/
 // Send a formatted log message internally
 func (log Logger) intLogf(lvl Level, format string, args ...interface{}) {
@@ -195,12 +213,8 @@ func (log Logger) intLogf(lvl Level, format string, args ...interface{}) {
 		return
 	}
 
-	// Determine caller func
-	pc, _, lineno, ok := runtime.Caller(2)
-	src := ""
-	if ok {
-		src = fmt.Sprintf("%s:%d", runtime.FuncForPC(pc).Name(), lineno)
-	}
+	src := log.sourceInfo()
+
 
 	msg := format
 	if len(args) > 0 {
@@ -239,12 +253,7 @@ func (log Logger) intLogc(lvl Level, closure func() string) {
 		return
 	}
 
-	// Determine caller func
-	pc, _, lineno, ok := runtime.Caller(2)
-	src := ""
-	if ok {
-		src = fmt.Sprintf("%s:%d", runtime.FuncForPC(pc).Name(), lineno)
-	}
+	src := log.sourceInfo()
 
 	// Make the log record
 	rec := &LogRecord{

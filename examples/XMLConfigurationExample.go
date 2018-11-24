@@ -1,10 +1,10 @@
 package main
 
-import l4g "code.google.com/p/log4go"
+import l4g "github.com/yhhaiua/log4go"
 
 func main() {
 	// Load the configuration (isn't this easy?)
-	l4g.LoadConfiguration("example.xml")
+	l4g.LoadConfiguration("log4j.xml")
 
 	// And now we're ready!
 	l4g.Finest("This will only go to those of you really cool UDP kids!  If you change enabled=true.")
