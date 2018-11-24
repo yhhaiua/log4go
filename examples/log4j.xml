@@ -11,7 +11,7 @@
     <level>INFO</level>
     <property name="filename">logs/logs.log</property>
     <!--
-       %T - Time (15:04:05 MST)
+       %T - Time (15:04:05.359 MST)
        %t - Time (15:04)
        %D - Date (2006/01/02)
        %d - Date (01/02/06)

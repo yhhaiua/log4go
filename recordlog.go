@@ -1,5 +1,3 @@
-// Copyright (C) 2010, Kyle Lemons <kyle@kylelemons.net>.  All rights reserved.
-
 package log4go
 
 import (
@@ -8,20 +6,13 @@ import (
 	"time"
 )
 
-// This log writer sends output to a file
-type FileLogWriter struct {
+type RecordLogWriter struct {
 	rec chan *LogRecord
 	rot chan bool
 
 	// The opened file
 	filename string
 	file     *os.File
-
-	// The logging format
-	format string
-
-	// File header/trailer
-	header, trailer string
 
 	// Rotate at linecount
 	maxlines          int
@@ -41,15 +32,18 @@ type FileLogWriter struct {
 }
 
 // This is the FileLogWriter's output method
-func (w *FileLogWriter) LogWrite(rec *LogRecord) {
+func (w *RecordLogWriter) LogWrite(rec *LogRecord) {
 	w.rec <- rec
 }
 
-func (w *FileLogWriter) Close() {
+func (w *RecordLogWriter) Close() {
 	close(w.rec)
 	w.file.Sync()
 }
-// NewFileLogWriter creates a new LogWriter which writes to the given file and
+
+
+
+// NewRecordLogWriter creates a new LogWriter which writes to the given file and
 // has rotation enabled if rotate is true.
 //
 // If rotate is true, any time a new log file is opened, the old one is renamed
@@ -58,15 +52,14 @@ func (w *FileLogWriter) Close() {
 //
 // The standard log-line format is:
 //   [%D %T] [%L] (%S) %M
-func NewFileLogWriter(fname string, rotate bool) *FileLogWriter {
+func NewRecordLogWriter(fname string, rotate bool) *RecordLogWriter {
 
 	createFileLog(fname)
 
-	w := &FileLogWriter{
+	w := &RecordLogWriter{
 		rec:       make(chan *LogRecord, LogBufferLength),
 		rot:       make(chan bool),
 		filename:  fname,
-		format:    "[%D %T] [%L] (%S) %M",
 		rotate:    false,
 		maxbackup: 999,
 	}
@@ -81,7 +74,6 @@ func NewFileLogWriter(fname string, rotate bool) *FileLogWriter {
 	go func() {
 		defer func() {
 			if w.file != nil {
-				fmt.Fprint(w.file, FormatLogRecord(w.trailer, &LogRecord{Created: time.Now()}))
 				w.file.Close()
 			}
 		}()
@@ -108,7 +100,7 @@ func NewFileLogWriter(fname string, rotate bool) *FileLogWriter {
 				}
 
 				// Perform the write
-				n, err := fmt.Fprint(w.file, FormatLogRecord(w.format, rec))
+				n, err := fmt.Fprint(w.file, rec.Message)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.filename, err)
 					return
@@ -124,16 +116,16 @@ func NewFileLogWriter(fname string, rotate bool) *FileLogWriter {
 	return w
 }
 
+
 // Request that the logs rotate
-func (w *FileLogWriter) Rotate() {
+func (w *RecordLogWriter) Rotate() {
 	w.rot <- true
 }
 
 // If this is called in a threaded context, it MUST be synchronized
-func (w *FileLogWriter) intRotate() error {
+func (w *RecordLogWriter) intRotate() error {
 	// Close any log file that may be open
 	if w.file != nil {
-		fmt.Fprint(w.file, FormatLogRecord(w.trailer, &LogRecord{Created: time.Now()}))
 		w.file.Close()
 	}
 
@@ -150,10 +142,13 @@ func (w *FileLogWriter) intRotate() error {
 				fname = w.filename + fmt.Sprintf(".%s", yesterday)
 				_, err = os.Lstat(fname)
 
-				for ; err == nil && num <= w.maxbackup; num++ {
-					fname = w.filename + fmt.Sprintf(".%s.%03d", yesterday, num)
-					_, err = os.Lstat(fname)
+				if err == nil{
+					for ; err == nil && num <= w.maxbackup; num++ {
+						fname = w.filename + fmt.Sprintf(".%s.%03d", yesterday, num)
+						_, err = os.Lstat(fname)
+					}
 				}
+
 				// return error if the last file checked still existed
 				if err == nil {
 					return fmt.Errorf("Rotate: Cannot find free log number to rename %s\n", w.filename)
@@ -187,7 +182,6 @@ func (w *FileLogWriter) intRotate() error {
 	w.file = fd
 
 	now := time.Now()
-	fmt.Fprint(w.file, FormatLogRecord(w.header, &LogRecord{Created: now}))
 
 	// Set the daily open date to the current date
 	w.daily_opendate = now.Day()
@@ -199,27 +193,9 @@ func (w *FileLogWriter) intRotate() error {
 	return nil
 }
 
-// Set the logging format (chainable).  Must be called before the first log
-// message is written.
-func (w *FileLogWriter) SetFormat(format string) *FileLogWriter {
-	w.format = format
-	return w
-}
-
-// Set the logfile header and footer (chainable).  Must be called before the first log
-// message is written.  These are formatted similar to the FormatLogRecord (e.g.
-// you can use %D and %T in your header/footer for date and time).
-func (w *FileLogWriter) SetHeadFoot(head, foot string) *FileLogWriter {
-	w.header, w.trailer = head, foot
-	if w.maxlines_curlines == 0 {
-		fmt.Fprint(w.file, FormatLogRecord(w.header, &LogRecord{Created: time.Now()}))
-	}
-	return w
-}
-
 // Set rotate at linecount (chainable). Must be called before the first log
 // message is written.
-func (w *FileLogWriter) SetRotateLines(maxlines int) *FileLogWriter {
+func (w *RecordLogWriter) SetRotateLines(maxlines int) *RecordLogWriter {
 	//fmt.Fprintf(os.Stderr, "FileLogWriter.SetRotateLines: %v\n", maxlines)
 	w.maxlines = maxlines
 	return w
@@ -227,7 +203,7 @@ func (w *FileLogWriter) SetRotateLines(maxlines int) *FileLogWriter {
 
 // Set rotate at size (chainable). Must be called before the first log message
 // is written.
-func (w *FileLogWriter) SetRotateSize(maxsize int) *FileLogWriter {
+func (w *RecordLogWriter) SetRotateSize(maxsize int) *RecordLogWriter {
 	//fmt.Fprintf(os.Stderr, "FileLogWriter.SetRotateSize: %v\n", maxsize)
 	w.maxsize = maxsize
 	return w
@@ -235,7 +211,7 @@ func (w *FileLogWriter) SetRotateSize(maxsize int) *FileLogWriter {
 
 // Set rotate daily (chainable). Must be called before the first log message is
 // written.
-func (w *FileLogWriter) SetRotateDaily(daily bool) *FileLogWriter {
+func (w *RecordLogWriter) SetRotateDaily(daily bool) *RecordLogWriter {
 	//fmt.Fprintf(os.Stderr, "FileLogWriter.SetRotateDaily: %v\n", daily)
 	w.daily = daily
 	return w
@@ -243,7 +219,7 @@ func (w *FileLogWriter) SetRotateDaily(daily bool) *FileLogWriter {
 
 // Set max backup files. Must be called before the first log message
 // is written.
-func (w *FileLogWriter) SetRotateMaxBackup(maxbackup int) *FileLogWriter {
+func (w *RecordLogWriter) SetRotateMaxBackup(maxbackup int) *RecordLogWriter {
 	w.maxbackup = maxbackup
 	return w
 }
@@ -252,19 +228,8 @@ func (w *FileLogWriter) SetRotateMaxBackup(maxbackup int) *FileLogWriter {
 // called before the first log message is written.  If rotate is false, the
 // files are overwritten; otherwise, they are rotated to another file before the
 // new log is opened.
-func (w *FileLogWriter) SetRotate(rotate bool) *FileLogWriter {
+func (w *RecordLogWriter) SetRotate(rotate bool) *RecordLogWriter {
 	//fmt.Fprintf(os.Stderr, "FileLogWriter.SetRotate: %v\n", rotate)
 	w.rotate = rotate
 	return w
-}
-
-// NewXMLLogWriter is a utility method for creating a FileLogWriter set up to
-// output XML record log messages instead of line-based ones.
-func NewXMLLogWriter(fname string, rotate bool) *FileLogWriter {
-	return NewFileLogWriter(fname, rotate).SetFormat(
-		`	<record level="%L">
-		<timestamp>%D %T</timestamp>
-		<source>%S</source>
-		<message>%M</message>
-	</record>`).SetHeadFoot("<log created=\"%D %T\">", "</log>")
 }
