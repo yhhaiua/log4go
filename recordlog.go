@@ -1,6 +1,7 @@
 package log4go
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -66,7 +67,7 @@ func NewRecordLogWriter(fname string, rotate bool) *RecordLogWriter {
 
 	// open the file for the first time
 	if err := w.intRotate(); err != nil {
-		fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.filename, err)
+		Error("FileLogWriter(%q): %s\n", w.filename, err)
 		return nil
 	}
 	w.SetRotate(rotate)
@@ -82,7 +83,7 @@ func NewRecordLogWriter(fname string, rotate bool) *RecordLogWriter {
 			select {
 			case <-w.rot:
 				if err := w.intRotate(); err != nil {
-					fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.filename, err)
+					Error("NewRecordLogWriter(%q): %s\n", w.filename, err)
 					return
 				}
 			case rec, ok := <-w.rec:
@@ -94,15 +95,20 @@ func NewRecordLogWriter(fname string, rotate bool) *RecordLogWriter {
 					(w.maxsize > 0 && w.maxsize_cursize >= w.maxsize) ||
 					(w.daily && now.Day() != w.daily_opendate) {
 					if err := w.intRotate(); err != nil {
-						fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.filename, err)
+						Error("NewRecordLogWriter(%q): %s\n", w.filename, err)
 						return
 					}
 				}
 
-				// Perform the write
-				n, err := fmt.Fprint(w.file, rec.Message)
+				data, err := json.Marshal(rec.Infos)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.filename, err)
+					Error("json errorr(%q): %s",w.filename,err)
+					return
+				}
+				// Perform the write
+				n, err := fmt.Fprint(w.file, string(data),"\n")
+				if err != nil {
+					Error("NewRecordLogWriter(%q): %s\n", w.filename, err)
 					return
 				}
 
@@ -151,7 +157,7 @@ func (w *RecordLogWriter) intRotate() error {
 
 				// return error if the last file checked still existed
 				if err == nil {
-					return fmt.Errorf("Rotate: Cannot find free log number to rename %s\n", w.filename)
+					return Error("Rotate: Cannot find free log number to rename %s\n", w.filename)
 				}
 			} else {
 				num = w.maxbackup - 1

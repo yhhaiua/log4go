@@ -27,6 +27,15 @@
     <property name="maxlines">0K</property> <!-- \d+[KMG]? Suffixes are in terms of thousands -->
     <property name="daily">true</property> <!-- Automatically rotates when a log message is written after midnight -->
   </filter>
+  <filter enabled="true">
+    <tag>REGISTER</tag>
+    <type>record</type>
+    <property name="filename">logs/register.log</property>
+    <property name="rotate">true</property> <!-- true enables log rotation, otherwise append -->
+    <property name="maxsize">0M</property> <!-- \d+[KMG]? Suffixes are in terms of 2**10 -->
+    <property name="maxlines">0K</property> <!-- \d+[KMG]? Suffixes are in terms of thousands -->
+    <property name="daily">true</property> <!-- Automatically rotates when a log message is written after midnight -->
+  </filter>
   <filter enabled="false">
     <tag>xmllog</tag>
     <type>xml</type>

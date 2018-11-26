@@ -11,15 +11,18 @@ import (
 
 var (
 	Global Logger
+	GlobalRecord LoggerRecord
 )
 
 func init() {
 	Global = NewDefaultLogger(DEBUG)
+	GlobalRecord = NewLoggerRecord()
 }
 
 // Wrapper for (*Logger).LoadConfiguration
 func LoadConfiguration(filename string) {
 	Global.LoadConfiguration(filename)
+	GlobalRecord.LoadConfiguration(filename)
 }
 
 // Wrapper for (*Logger).AddFilter
@@ -275,4 +278,9 @@ func Critical(arg0 interface{}, args ...interface{}) error {
 		return errors.New(fmt.Sprint(first) + fmt.Sprintf(strings.Repeat(" %v", len(args)), args...))
 	}
 	return nil
+}
+
+//InfoLog logrecord info
+func InfoLog(name string,arg interface{})  {
+	GlobalRecord.infoLog(name,arg)
 }

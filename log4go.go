@@ -105,6 +105,7 @@ type LogRecord struct {
 	Created time.Time // The time at which the log message was created (nanoseconds)
 	Source  string    // The message source
 	Message string    // The log message
+	Infos interface{}
 }
 
 /****** LogWriter ******/

@@ -38,6 +38,7 @@ func (log Logger) LoadConfiguration(filename string) {
 		fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Could not open %q for reading: %s\n", filename, err)
 		os.Exit(1)
 	}
+	defer fd.Close()
 
 	contents, err := ioutil.ReadAll(fd)
 	if err != nil {
@@ -55,7 +56,6 @@ func (log Logger) LoadConfiguration(filename string) {
 		var filt LogWriter
 		var lvl Level
 		bad, good, enabled := false, true, false
-
 		// Check required children
 		if len(xmlfilt.Enabled) == 0 {
 			fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Required attribute %s for filter missing in %s\n", "enabled", filename)
@@ -70,6 +70,10 @@ func (log Logger) LoadConfiguration(filename string) {
 		if len(xmlfilt.Type) == 0 {
 			fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Required child <%s> for filter missing in %s\n", "type", filename)
 			bad = true
+		}else{
+			if xmlfilt.Type == "record"{
+				continue
+			}
 		}
 		if len(xmlfilt.Level) == 0 {
 			fmt.Fprintf(os.Stderr, "LoadConfiguration: Error: Required child <%s> for filter missing in %s\n", "level", filename)
@@ -128,6 +132,7 @@ func (log Logger) LoadConfiguration(filename string) {
 		}
 
 		log[xmlfilt.Tag] = &Filter{lvl, filt}
+
 	}
 }
 
