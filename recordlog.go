@@ -157,7 +157,8 @@ func (w *RecordLogWriter) intRotate() error {
 
 				// return error if the last file checked still existed
 				if err == nil {
-					return Error("Rotate: Cannot find free log number to rename %s\n", w.filename)
+					Error("Rotate: Cannot find free log number to rename %s\n", w.filename)
+					return fmt.Errorf("Rotate: Cannot find free log number to rename %s\n", w.filename)
 				}
 			} else {
 				num = w.maxbackup - 1

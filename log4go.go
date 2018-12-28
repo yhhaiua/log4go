@@ -182,7 +182,7 @@ func (log Logger) AddFilter(name string, lvl Level, writer LogWriter) Logger {
 
 func (log Logger) sourceInfo() string{
 
-	pc, file, lineno, ok := runtime.Caller(3)
+	pc, file, lineno, ok := runtime.Caller(4)
 	src := ""
 	if ok {
 		slash := strings.LastIndex(file, "/")
